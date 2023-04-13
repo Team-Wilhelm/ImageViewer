@@ -13,17 +13,15 @@ import java.util.Objects;
 public class SlideshowTask extends Task<Integer> {
     private int delay;
     private int currentImageIndex = 0;
-    private List<Image> images = new ArrayList<>();
+    private List<ImageWrapper> images = new ArrayList<>();
     private ImageViewerWindowController controller;
-    private HashMap<Image, String> imageMap = new HashMap<>();
 
 
     public SlideshowTask(ImageViewerWindowController controller) {
         this.delay = controller.getDelay();
         this.currentImageIndex = controller.getCurrentImageIndex();
-        this.images = controller.getImages();
         this.controller = controller;
-        this.imageMap = controller.getImageMap();
+        this.images = controller.getImages();
     }
 
     @Override

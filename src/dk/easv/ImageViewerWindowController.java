@@ -32,26 +32,23 @@ import javafx.stage.Stage;
 import javax.imageio.ImageIO;
 
 public class ImageViewerWindowController implements Initializable {
-    private final List<Image> images = new ArrayList<>();
-    private HashMap<Image, String> imageMap = new HashMap<>();
-    private int currentImageIndex = 0;
-
     @FXML
     private Parent root;
-
     @FXML
     private ImageView imageView;
-
     @FXML
     private Slider sliderDelay;
     @FXML
     private Button btnStartSlideshow, btnStopSlideshow;
     @FXML
     private Label lblFileName, lblRed, lblGreen, lblBlue, lblMixed;
+
     private int delay;
     private boolean isRunning = true;
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
     private Task<Integer> task;
+    private final List<ImageWrapper> images = new ArrayList<>();
+    private int currentImageIndex = 0;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -75,10 +72,16 @@ public class ImageViewerWindowController implements Initializable {
             files.forEach((File f) ->
             {
                 Image image = new Image(f.toURI().toString());
-                imageMap.put(image, f.getAbsolutePath());
-                images.add(image);
+                ImageWrapper imageWrapper = new ImageWrapper(image, f.getAbsolutePath());
+                Task<ImageWrapper> task = new ColourCounterTask(imageWrapper);
+
+                task.setOnSucceeded(event -> {
+                    displayImage();
+                });
+
+                executorService.submit(task);
+                images.add(imageWrapper);
             });
-            displayImage();
         }
     }
 
@@ -100,19 +103,16 @@ public class ImageViewerWindowController implements Initializable {
     }
 
     private void displayImage() {
-        Image image;
+        ImageWrapper image;
         if (!images.isEmpty()) {
             image = images.get(currentImageIndex);
-            imageView.setImage(image);
-            lblFileName.setText(imageMap.get(image));
+            imageView.setImage(image.getImage());
+            lblFileName.setText(image.getFileName());
 
-            lblRed.setText("R: ");
-            lblGreen.setText("G: ");
-            lblBlue.setText("B: ");
-            lblMixed.setText("Mixed: ");
-            colourCounter(image);
-
-            lblFileName.setText(imageMap.get(image));
+            lblRed.setText("R: " + image.getRed());
+            lblGreen.setText("G: " + image.getGreen());
+            lblBlue.setText("B: " + image.getBlue());
+            lblMixed.setText("Mixed: " + image.getMixed());
         }
     }
 
@@ -140,7 +140,7 @@ public class ImageViewerWindowController implements Initializable {
     public void handleSliderDelay(DragEvent dragEvent) {
     }
 
-    public List<Image> getImages() {
+    public List<ImageWrapper> getImages() {
         return images;
     }
 
@@ -152,83 +152,6 @@ public class ImageViewerWindowController implements Initializable {
         return delay;
     }
 
-    public HashMap<Image, String> getImageMap() {
-        return imageMap;
-    }
-
-    private void colourCounter(Image image) {
-        File file = new File(imageMap.get(image));
-        BufferedImage bufferedImage;
-        try {
-            bufferedImage = ImageIO.read(file);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        int width = (int) image.getWidth();
-        int height = (int) image.getHeight();
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
-                int clr = bufferedImage.getRGB(i, j);
-                int red = (clr & 0x00ff0000) >> 16;
-                int green = (clr & 0x0000ff00) >> 8;
-                int blue = clr & 0x000000ff;
-
-                HashMap<String, Integer> colourMap = new HashMap<>();
-                colourMap.put("red", red);
-                colourMap.put("green", green);
-                colourMap.put("blue", blue);
-
-                String highest = Collections.max(colourMap.entrySet(), Comparator.comparingInt(Map.Entry::getValue)).getKey();
-                Comparator<Integer> comparator = new Comparator() {
-                    @Override
-                    public int compare(Object o1, Object o2) {
-                        return (Integer) o1 - (Integer) o2;
-                    }
-                };
-
-                if (comparator.compare(red, green) == 0
-                        || comparator.compare(red, blue) == 0
-                        || comparator.compare(green, blue) == 0) {
-                    highest = "mixed";
-                }
-
-                switch (highest) {
-                    case "red" -> {
-                        if (lblRed.getText().length() > 3) {
-                            int value = Integer.parseInt(lblRed.getText().substring(3)) + 1;
-                            lblRed.setText("R: " + value);
-                        } else {
-                            lblRed.setText("R: 1");
-                        }
-                    }
-                    case "green" -> {
-                        if (lblGreen.getText().length() > 3) {
-                            int value = Integer.parseInt(lblGreen.getText().substring(3)) + 1;
-                            lblGreen.setText("G: " + value);
-                        } else {
-                            lblGreen.setText("G: 1");
-                        }
-                    }
-                    case "blue" -> {
-                        if (lblBlue.getText().length() > 3) {
-                            int value = Integer.parseInt(lblBlue.getText().substring(3)) + 1;
-                            lblBlue.setText("B: " + value);
-                        } else {
-                            lblBlue.setText("B: 1");
-                        }
-                    }
-                    case "mixed" -> {
-                        if (lblMixed.getText().length() > 7) {
-                            int value = Integer.parseInt(lblMixed.getText().substring(7)) + 1;
-                            lblMixed.setText("Mixed: " + value);
-                        } else {
-                            lblMixed.setText("Mixed: 1");
-                        }
-                    }
-                }
-            }
-        }
-    }
 
         //Start slideshow: All the images, which the user has selected from a folder,
         // should be displayed as a slideshow.
