@@ -3,6 +3,7 @@ package dk.easv;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +18,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -27,6 +29,7 @@ import javafx.stage.Stage;
 
 public class ImageViewerWindowController implements Initializable {
     private final List<Image> images = new ArrayList<>();
+    private HashMap<Image, String> imageMap = new HashMap<>();
     private int currentImageIndex = 0;
 
     @FXML
@@ -39,10 +42,12 @@ public class ImageViewerWindowController implements Initializable {
     private Slider sliderDelay;
     @FXML
     private Button btnStartSlideshow, btnStopSlideshow;
+    @FXML
+    private Label lblFileName;
     private int delay;
     private boolean isRunning = true;
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private Task<Image> task;
+    private Task<Object[]> task;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -67,7 +72,9 @@ public class ImageViewerWindowController implements Initializable {
         {
             files.forEach((File f) ->
             {
-                images.add(new Image(f.toURI().toString()));
+                Image image = new Image(f.toURI().toString());
+                imageMap.put(image, f.getName());
+                images.add(image);
             });
             displayImage();
         }
@@ -108,9 +115,10 @@ public class ImageViewerWindowController implements Initializable {
         isRunning = true;
         task = new SlideshowTask(this);
         task.setOnSucceeded(event -> {
-            imageView.setImage(task.getValue());
-            if (!task.getMessage().isEmpty())
-                currentImageIndex = Integer.parseInt(task.getMessage());
+            Image image = (Image) task.getValue()[0];
+            imageView.setImage(image);
+            currentImageIndex = (int) task.getValue()[1];
+            lblFileName.setText(imageMap.get(image));
             if (isRunning) {
                 handleBtnStartSlideshow(actionEvent);
             }
@@ -137,6 +145,10 @@ public class ImageViewerWindowController implements Initializable {
 
     public int getDelay() {
         return delay;
+    }
+
+    public HashMap<Image, String> getImageMap() {
+        return imageMap;
     }
 
     //Start slideshow: All the images, which the user has selected from a folder,
