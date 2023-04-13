@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
-public class SlideshowTask extends Task<Object[]> {
+public class SlideshowTask extends Task<Integer> {
     private int delay;
     private int currentImageIndex = 0;
     private List<Image> images = new ArrayList<>();
@@ -27,8 +27,7 @@ public class SlideshowTask extends Task<Object[]> {
     }
 
     @Override
-    protected Object[] call() throws Exception {
-        Image image;
+    protected Integer call() throws Exception {
         try {
             Thread.sleep(delay * 1000);
 
@@ -37,12 +36,9 @@ public class SlideshowTask extends Task<Object[]> {
             } else {
                 currentImageIndex = 0;
             }
-            image = images.get(currentImageIndex);
-            updateMessage(imageMap.get(image));
         } catch (InterruptedException e) {
             e.printStackTrace();
-            image = null;
         }
-        return new Object[]{image, currentImageIndex};
+        return currentImageIndex;
     }
 }
