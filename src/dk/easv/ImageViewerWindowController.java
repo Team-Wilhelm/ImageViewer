@@ -5,11 +5,18 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import javafx.beans.binding.Binding;
+import javafx.beans.binding.Bindings;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
+import javafx.scene.control.Button;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -18,28 +25,38 @@ import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
 
-public class ImageViewerWindowController implements Initializable
-{
+public class ImageViewerWindowController implements Initializable {
     private final List<Image> images = new ArrayList<>();
     private int currentImageIndex = 0;
 
     @FXML
-    Parent root;
+    private Parent root;
 
     @FXML
     private ImageView imageView;
 
     @FXML
     private Slider sliderDelay;
+    @FXML
+    private Button btnStartSlideshow, btnStopSlideshow;
+    private int delay;
+    private boolean isRunning = true;
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private Task<Image> task;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
+        sliderDelay.valueProperty().addListener((observable, oldValue, newValue) ->
+        {
+            delay = newValue.intValue();
+            System.out.println("Delay: " + delay);
+        });
+        delay = 1;
     }
 
     @FXML
-    private void handleBtnLoadAction()
-    {
+    private void handleBtnLoadAction() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select image files");
         fileChooser.getExtensionFilters().add(new ExtensionFilter("Images",
@@ -86,16 +103,41 @@ public class ImageViewerWindowController implements Initializable
     }
 
     public void handleBtnStartSlideshow(ActionEvent actionEvent) {
-
+        btnStartSlideshow.setDisable(true);
+        btnStopSlideshow.setDisable(false);
+        isRunning = true;
+        task = new SlideshowTask(this);
+        task.setOnSucceeded(event -> {
+            imageView.setImage(task.getValue());
+            if (!task.getMessage().isEmpty())
+                currentImageIndex = Integer.parseInt(task.getMessage());
+            if (isRunning) {
+                handleBtnStartSlideshow(actionEvent);
+            }
+        });
+        executorService.submit(task);
     }
 
     public void handleBtnStopSlideshow(ActionEvent actionEvent) {
+        isRunning = false;
+        btnStartSlideshow.setDisable(false);
+        btnStopSlideshow.setDisable(true);
     }
 
     public void handleSliderDelay(DragEvent dragEvent) {
     }
 
+    public List<Image> getImages() {
+        return images;
+    }
 
+    public int getCurrentImageIndex() {
+        return currentImageIndex;
+    }
+
+    public int getDelay() {
+        return delay;
+    }
 
     //Start slideshow: All the images, which the user has selected from a folder,
     // should be displayed as a slideshow.
