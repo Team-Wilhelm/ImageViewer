@@ -12,15 +12,12 @@ import java.util.Objects;
 
 public class SlideshowTask extends Task<Integer> {
     private int delay;
-    private int currentImageIndex = 0;
-    private List<ImageWrapper> images = new ArrayList<>();
-    private ImageViewerWindowController controller;
-
+    private int currentImageIndex;
+    private List<ImageWrapper> images;
 
     public SlideshowTask(ImageViewerWindowController controller) {
         this.delay = controller.getDelay();
         this.currentImageIndex = controller.getCurrentImageIndex();
-        this.controller = controller;
         this.images = controller.getImages();
     }
 

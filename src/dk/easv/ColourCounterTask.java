@@ -14,14 +14,9 @@ import java.util.Map;
 
 public class ColourCounterTask extends Task<ImageWrapper> {
     private ImageWrapper image;
-    private int red, green, blue, mixed;
 
     public ColourCounterTask(ImageWrapper image) {
         this.image = image;
-        this.red = image.getRed();
-        this.green = image.getGreen();
-        this.blue = image.getBlue();
-        this.mixed = image.getMixed();
     }
 
     @Override
